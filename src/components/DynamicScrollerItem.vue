@@ -1,6 +1,4 @@
 <script>
-import { h } from 'vue'
-
 export default {
   name: 'DynamicScrollerItem',
 
@@ -49,10 +47,6 @@ export default {
       default: 'div',
     },
   },
-
-  emits: [
-    'resize',
-  ],
 
   computed: {
     id () {
@@ -118,7 +112,8 @@ export default {
         this.$watch(() => this.sizeDependencies[k], this.onDataUpdate)
       }
 
-      this.vscrollParent.$_events.on('vscroll:update', this.onVscrollUpdate)
+      this.vscrollParent.$on('vscroll:update', this.onVscrollUpdate)
+      this.vscrollParent.$on('vscroll:update-size', this.onVscrollUpdateSize)
     }
   },
 
@@ -129,8 +124,9 @@ export default {
     }
   },
 
-  beforeUnmount () {
-    this.vscrollParent.$_events.off('vscroll:update', this.onVscrollUpdate)
+  beforeDestroy () {
+    this.vscrollParent.$off('vscroll:update', this.onVscrollUpdate)
+    this.vscrollParent.$off('vscroll:update-size', this.onVscrollUpdateSize)
     this.unobserveSize()
   },
 
@@ -194,8 +190,8 @@ export default {
           this.vscrollParent.$_undefinedSizes--
           this.vscrollParent.$_undefinedMap[this.id] = undefined
         }
-        this.vscrollData.sizes[this.id] = size
-        this.vscrollData.validSizes[this.id] = true
+        this.$set(this.vscrollData.sizes, this.id, size)
+        this.$set(this.vscrollData.validSizes, this.id, true)
         if (this.emitResize) this.$emit('resize', this.id)
       }
     },
@@ -218,8 +214,8 @@ export default {
     },
   },
 
-  render () {
-    return h(this.tag, this.$slots.default())
+  render (h) {
+    return h(this.tag, this.$slots.default)
   },
 }
 </script>

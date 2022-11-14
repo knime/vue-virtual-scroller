@@ -74,10 +74,9 @@
 </template>
 
 <script>
-import { shallowReactive, markRaw } from 'vue'
 import { ResizeObserver } from 'vue-resize'
 import { ObserveVisibility } from 'vue-observe-visibility'
-import { getScrollParent } from '../scrollparent'
+import ScrollParent from 'scrollparent'
 import config from '../config'
 import { props, simpleArray } from './common'
 import { supportsPassive } from '../utils'
@@ -173,15 +172,6 @@ export default {
       default: '',
     },
   },
-
-  emits: [
-    'resize',
-    'visible',
-    'hidden',
-    'update',
-    'scroll-start',
-    'scroll-end',
-  ],
 
   data () {
     return {
@@ -287,23 +277,26 @@ export default {
     }
   },
 
-  beforeUnmount () {
+  beforeDestroy () {
     this.removeListeners()
   },
 
   methods: {
     addView (pool, index, item, key, type) {
-      const nr = markRaw({
+      const view = {
+        item,
+        position: 0,
+      }
+      const nonReactive = {
         id: uid++,
         index,
         used: true,
         key,
         type,
-      })
-      const view = shallowReactive({
-        item,
-        position: 0,
-        nr,
+      }
+      Object.defineProperty(view, 'nr', {
+        configurable: false,
+        value: nonReactive,
       })
       pool.push(view)
       return view
@@ -605,7 +598,7 @@ export default {
     },
 
     getListenerTarget () {
-      let target = getScrollParent(this.$el)
+      let target = ScrollParent(this.$el)
       // Fix global scroll target for Chrome and Safari
       if (window.document && (target === window.document.documentElement || target === window.document.body)) {
         target = window
@@ -698,7 +691,7 @@ export default {
       let scrollDistance
 
       if (this.pageMode) {
-        const viewportEl = getScrollParent(this.$el)
+        const viewportEl = ScrollParent(this.$el)
         // HTML doesn't overflow like other elements
         const scrollTop = viewportEl.tagName === 'HTML' ? 0 : viewportEl[direction.scroll]
         const bounds = viewportEl.getBoundingClientRect()
@@ -727,7 +720,7 @@ export default {
     },
 
     sortViews () {
-      this.pool.sort((viewA, viewB) => viewA.index - viewB.index)
+      this.pool.sort((viewA, viewB) => viewA.nr.index - viewB.nr.index)
     },
   },
 }

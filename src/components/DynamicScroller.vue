@@ -10,8 +10,9 @@
     v-bind="$attrs"
     @resize="onScrollerResize"
     @visible="onScrollerVisible"
+    v-on="listeners"
   >
-    <template #default="{ item: itemWithSize, index, active }">
+    <template slot-scope="{ item: itemWithSize, index, active }">
       <slot
         v-bind="{
           item: itemWithSize.item,
@@ -21,20 +22,19 @@
         }"
       />
     </template>
-    <template #before>
+    <template slot="before">
       <slot name="before" />
     </template>
-    <template #after>
+    <template slot="after">
       <slot name="after" />
     </template>
-    <template #empty>
+    <template slot="empty">
       <slot name="empty" />
     </template>
   </RecycleScroller>
 </template>
 
 <script>
-import mitt from 'mitt'
 import RecycleScroller from './RecycleScroller.vue'
 import { props, simpleArray } from './common'
 
@@ -87,11 +87,6 @@ export default {
     },
   },
 
-  emits: [
-    'resize',
-    'visible',
-  ],
-
   data () {
     return {
       vscrollData: {
@@ -126,6 +121,16 @@ export default {
         })
       }
       return result
+    },
+
+    listeners () {
+      const listeners = {}
+      for (const key in this.$listeners) {
+        if (key !== 'resize' && key !== 'visible') {
+          listeners[key] = this.$listeners[key]
+        }
+      }
+      return listeners
     },
   },
 
@@ -174,7 +179,6 @@ export default {
     this.$_updates = []
     this.$_undefinedSizes = 0
     this.$_undefinedMap = {}
-    this.$_events = mitt()
   },
 
   activated () {
@@ -183,10 +187,6 @@ export default {
 
   deactivated () {
     this.vscrollData.active = false
-  },
-
-  unmounted () {
-    this.$_events.all.clear()
   },
 
   methods: {
@@ -199,7 +199,7 @@ export default {
     },
 
     onScrollerVisible () {
-      this.$_events.emit('vscroll:update', { force: false })
+      this.$emit('vscroll:update', { force: false })
       this.$emit('visible')
     },
 
@@ -207,7 +207,7 @@ export default {
       if (clear || this.simpleArray) {
         this.vscrollData.validSizes = {}
       }
-      this.$_events.emit('vscroll:update', { force: true })
+      this.$emit('vscroll:update', { force: true })
     },
 
     scrollToItem (index) {

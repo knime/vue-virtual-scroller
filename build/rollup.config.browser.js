@@ -8,12 +8,9 @@ const config = Object.assign({}, base, {
     file: 'dist/vue-virtual-scroller.min.js',
     format: 'iife',
     sourcemap: true,
-    globals: {
-      vue: 'Vue',
-    },
   },
 })
 
-config.plugins.push(terser())
+config.plugins.push(terser({}))
 
 export default config

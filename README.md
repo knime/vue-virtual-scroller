@@ -1,13 +1,11 @@
-Copied from https://github.com/Akryum/vue-virtual-scroller and changed to better support large amount of rows.
-
 # vue-virtual-scroller
 
 [![npm](https://img.shields.io/npm/v/vue-virtual-scroller.svg) ![npm](https://img.shields.io/npm/dm/vue-virtual-scroller.svg)](https://www.npmjs.com/package/vue-virtual-scroller)
-[![vue3](https://img.shields.io/badge/vue-3.x-brightgreen.svg)](https://vuejs.org/)
+[![vue2](https://img.shields.io/badge/vue-2.x-brightgreen.svg)](https://vuejs.org/)
 
-Blazing fast scrolling of any amount of data | [Live demo](https://vue-virtual-scroller-demo.netlify.app/) | [Video demo](https://www.youtube.com/watch?v=Uzq1KQV8f4k)
+Blazing fast scrolling of any amount of data | [Live demo](https://akryum.github.io/vue-virtual-scroller/) | [Video demo](https://www.youtube.com/watch?v=Uzq1KQV8f4k)
 
-For Vue 2 support, see [here](https://github.com/Akryum/vue-virtual-scroller/tree/v1/packages/vue-virtual-scroller)
+For Vue 3 support, see [here](https://github.com/Akryum/vue-virtual-scroller/tree/master/packages/vue-virtual-scroller)
 
 [💚️ Become a Sponsor](https://github.com/sponsors/Akryum)
 
@@ -19,32 +17,41 @@ For Vue 2 support, see [here](https://github.com/Akryum/vue-virtual-scroller/tre
   </a>
 </p>
 
+## Table of contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [RecycleScroller](#recyclescroller)
+  - [DynamicScroller](#dynamicscroller)
+  - [DynamicScrollerItem](#dynamicscrolleritem)
+  - [IdState](#idstate)
+
 # Installation
 
 ```
-npm install --save vue-virtual-scroller@next
+npm install --save vue-virtual-scroller
 ```
 
-```
-yarn add vue-virtual-scroller@next
-```
+**⚠️ `vue-virtual-scroller` now uses [vue-observe-visibility](https://github.com/Akryum/vue-observe-visibility#installation) to automatically refresh itself when shown to prevent display glitches. This means you need to include the [Intersection Observer polyfill](https://github.com/w3c/IntersectionObserver/tree/master/polyfill) needed by `vue-observe-visibility` for this to work in old browsers (like Internet Explorer).**
 
 ## Default import
 
 Install all the components:
 
 ```javascript
+import Vue from 'vue'
 import VueVirtualScroller from 'vue-virtual-scroller'
 
-app.use(VueVirtualScroller)
+Vue.use(VueVirtualScroller)
 ```
 
 Use specific components:
 
 ```javascript
+import Vue from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 
-app.component('RecycleScroller', RecycleScroller)
+Vue.component('RecycleScroller', RecycleScroller)
 ```
 
 **⚠️ The line below should be included when importing the package:**
@@ -62,16 +69,16 @@ import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 <script src="vue-virtual-scroller/dist/vue-virtual-scroller.min.js"></script>
 ```
 
-Install the component:
+If Vue is detected, the plugin will be installed automatically. If not, install the component:
 
 ```javascript
-app.use(VueVirtualScroller)
+Vue.use(VueVirtualScroller)
 ```
 
 Or register it with a custom name:
 
 ```javascript
-app.component('RecycleScroller', VueVirtualScroller.RecycleScroller)
+Vue.component('RecycleScroller', VueVirtualScroller.RecycleScroller)
 ```
 
 # Usage

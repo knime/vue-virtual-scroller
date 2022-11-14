@@ -1,9 +1,16 @@
-import { reactive } from 'vue'
+import Vue from 'vue'
 
 export default function ({
   idProp = vm => vm.item.id,
 } = {}) {
-  const store = reactive({})
+  const store = {}
+  const vm = new Vue({
+    data () {
+      return {
+        store,
+      }
+    },
+  })
 
   // @vue/component
   return {
@@ -44,7 +51,7 @@ export default function ({
         const factory = this.$options.idState
         if (typeof factory === 'function') {
           const data = factory.call(this, this)
-          store[id] = data
+          vm.$set(store, id, data)
           this.$_id = id
           return data
         } else {

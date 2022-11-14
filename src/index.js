@@ -12,19 +12,19 @@ export {
   DynamicScrollerItem,
 }
 
-function registerComponents (app, prefix) {
-  app.component(`${prefix}recycle-scroller`, RecycleScroller)
-  app.component(`${prefix}RecycleScroller`, RecycleScroller)
-  app.component(`${prefix}dynamic-scroller`, DynamicScroller)
-  app.component(`${prefix}DynamicScroller`, DynamicScroller)
-  app.component(`${prefix}dynamic-scroller-item`, DynamicScrollerItem)
-  app.component(`${prefix}DynamicScrollerItem`, DynamicScrollerItem)
+function registerComponents (Vue, prefix) {
+  Vue.component(`${prefix}recycle-scroller`, RecycleScroller)
+  Vue.component(`${prefix}RecycleScroller`, RecycleScroller)
+  Vue.component(`${prefix}dynamic-scroller`, DynamicScroller)
+  Vue.component(`${prefix}DynamicScroller`, DynamicScroller)
+  Vue.component(`${prefix}dynamic-scroller-item`, DynamicScrollerItem)
+  Vue.component(`${prefix}DynamicScrollerItem`, DynamicScrollerItem)
 }
 
 const plugin = {
   // eslint-disable-next-line no-undef
   version: VERSION,
-  install (app, options) {
+  install (Vue, options) {
     const finalOptions = Object.assign({}, {
       installComponents: true,
       componentsPrefix: '',
@@ -37,9 +37,20 @@ const plugin = {
     }
 
     if (finalOptions.installComponents) {
-      registerComponents(app, finalOptions.componentsPrefix)
+      registerComponents(Vue, finalOptions.componentsPrefix)
     }
   },
 }
 
 export default plugin
+
+// Auto-install
+let GlobalVue = null
+if (typeof window !== 'undefined') {
+  GlobalVue = window.Vue
+} else if (typeof global !== 'undefined') {
+  GlobalVue = global.Vue
+}
+if (GlobalVue) {
+  GlobalVue.use(plugin)
+}

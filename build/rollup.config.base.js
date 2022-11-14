@@ -1,4 +1,4 @@
-import { babel } from '@rollup/plugin-babel'
+import babel from 'rollup-plugin-babel'
 import resolve from '@rollup/plugin-node-resolve'
 import vue from 'rollup-plugin-vue'
 import cjs from '@rollup/plugin-commonjs'
@@ -24,21 +24,18 @@ export default {
     }),
     css({
       output: styles => {
+        fs.ensureDirSync('dist')
         const file = require.resolve('vue-resize/dist/vue-resize.css')
         styles += fs.readFileSync(file, { encoding: 'utf8' })
-        fs.ensureDirSync('dist')
         fs.writeFileSync('dist/vue-virtual-scroller.css', new CleanCSS().minify(styles).styles)
       },
     }),
     babel({
       exclude: 'node_modules/**',
     }),
-    cjs({
-      include: /node_modules/,
-    }),
+    cjs(),
     replace({
       VERSION: JSON.stringify(config.version),
-      preventAssignment: true,
     }),
   ],
   watch: {
