@@ -50,10 +50,7 @@ export default {
 
   computed: {
     id () {
-      if (this.vscrollData.simpleArray) return this.index
-      // eslint-disable-next-line no-prototype-builtins
-      if (this.item.hasOwnProperty(this.vscrollData.keyField)) return this.item[this.vscrollData.keyField]
-      throw new Error(`keyField '${this.vscrollData.keyField}' not found in your item. You should set a valid keyField prop on your Scroller`)
+      return this.vscrollData.simpleArray ? this.index : this.item[this.vscrollData.keyField]
     },
 
     size () {
@@ -145,8 +142,8 @@ export default {
     },
 
     updateWatchData () {
-      if (this.watchData && !this.vscrollResizeObserver) {
-        this.$_watchData = this.$watch('item', () => {
+      if (this.watchData) {
+        this.$_watchData = this.$watch('data', () => {
           this.onDataUpdate()
         }, {
           deep: true,
@@ -184,7 +181,7 @@ export default {
     },
 
     applySize (width, height) {
-      const size = ~~(this.vscrollParent.direction === 'vertical' ? height : width)
+      const size = Math.round(this.vscrollParent.direction === 'vertical' ? height : width)
       if (size && this.size !== size) {
         if (this.vscrollParent.$_undefinedMap[this.id]) {
           this.vscrollParent.$_undefinedSizes--
@@ -197,7 +194,7 @@ export default {
     },
 
     observeSize () {
-      if (!this.vscrollResizeObserver || !this.$el.parentNode) return
+      if (!this.vscrollResizeObserver) return
       this.vscrollResizeObserver.observe(this.$el.parentNode)
       this.$el.parentNode.addEventListener('resize', this.onResize)
     },
