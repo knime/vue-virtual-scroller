@@ -87,6 +87,21 @@ export default {
       default: null,
     },
 
+    numItemsAbove: {
+      type: Number,
+      default: 0,
+    },
+
+    numItemsBelow: {
+      type: Number,
+      default: 0,
+    },
+
+    emptyItem: {
+      type: Object,
+      default: undefined,
+    },
+
     sizeField: {
       type: String,
       default: 'size',
@@ -128,16 +143,22 @@ export default {
   },
 
   computed: {
+
+    emptySize () {
+      return this.itemSize || this.emptyItem.size || this.minItemSize || 0
+    },
+
     sizes () {
+      const spaceAbove = this.emptySize * this.numItemsAbove
       if (this.itemSize === null) {
         const sizes = {
-          '-1': { accumulator: 0 },
+          '-1': { accumulator: spaceAbove },
         }
         const items = this.items
         const field = this.sizeField
         const minItemSize = this.minItemSize
         let computedMinSize = 10000
-        let accumulator = 0
+        let accumulator = spaceAbove
         let current
         for (let i = 0, l = items.length; i < l; i++) {
           current = items[i][field] || minItemSize
@@ -159,7 +180,8 @@ export default {
 
   watch: {
     items () {
-      this.updateVisibleItems(true)
+      console.log('new items')
+      this.updateVisibleItems(this.numItemsAbove === 0 && this.numItemsBelow === 0)
     },
 
     pageMode () {
@@ -196,7 +218,7 @@ export default {
     this.$nextTick(() => {
       // In SSR mode, render the real number of visible items
       this.$_prerender = false
-      this.updateVisibleItems(true)
+      this.updateVisibleItems(this.numItemsAbove === 0 && this.numItemsBelow === 0)
       this.ready = true
     })
   },
@@ -283,13 +305,23 @@ export default {
       const typeField = this.typeField
       const keyField = this.simpleArray ? null : this.keyField
       const items = this.items
-      const count = items.length
+      const count = items.length + this.numItemsAbove + this.numItemsBelow
       const sizes = this.sizes
       const views = this.$_views
       const unusedViews = this.$_unusedViews
       const pool = this.pool
       let startIndex, endIndex
       let totalSize
+
+      const computePosition = (i) => {
+        if (i < this.numItemsAbove - 1) {
+          return (i + 1) * this.emptySize
+        } else if (i < count - this.numItemsBelow) {
+          return sizes[i - this.numItemsAbove].accumulator
+        } else {
+          return sizes[items.length - 1].accumulator + ((i + 1) - (this.numItemsAbove + items.length)) * this.emptySize
+        }
+      }
 
       if (!count) {
         startIndex = endIndex = totalSize = 0
@@ -327,10 +359,10 @@ export default {
           // Searching for startIndex
           do {
             oldI = i
-            h = sizes[i].accumulator
+            h = computePosition(i)
             if (h < scroll.start) {
               a = i
-            } else if (i < count - 1 && sizes[i + 1].accumulator > scroll.start) {
+            } else if (i < count - 1 && computePosition(i + 1) > scroll.start) {
               b = i
             }
             i = ~~((a + b) / 2)
@@ -339,12 +371,12 @@ export default {
           startIndex = i
 
           // For container style
-          totalSize = sizes[count - 1].accumulator
+          totalSize = sizes[items.length - 1].accumulator + this.numItemsBelow * this.emptySize
 
           // Searching for endIndex
-          for (endIndex = i; endIndex < count && sizes[endIndex].accumulator < scroll.end; endIndex++);
+          for (endIndex = i; endIndex < count && computePosition(endIndex) < scroll.end; endIndex++);
           if (endIndex === -1) {
-            endIndex = items.length - 1
+            endIndex = count - 1
           } else {
             endIndex++
             // Bounds
@@ -366,7 +398,6 @@ export default {
       if (endIndex - startIndex > config.itemsLimit) {
         this.itemsLimitError()
       }
-
       this.totalSize = totalSize
 
       let view
@@ -409,16 +440,22 @@ export default {
       const unusedIndex = continuous ? null : new Map()
 
       let item, type, unusedPool
-      let v
+      let v, key, checkSize
       for (let i = startIndex; i < endIndex; i++) {
-        item = items[i]
-        const key = keyField ? item[keyField] : item
+        if (i < this.numItemsAbove || i >= count - this.numItemsBelow) {
+          item = { id: `emptyItem-${i - this.numItemsAbove}`, ...this.emptyItem }
+          checkSize = false
+        } else {
+          item = items[i - this.numItemsAbove]
+          checkSize = true
+        }
+        key = keyField ? item[keyField] : item
         if (key == null) {
           throw new Error(`Key is ${key} on item (keyField is '${keyField}')`)
         }
         view = views.get(key)
 
-        if (!itemSize && !sizes[i].size) {
+        if (checkSize && !itemSize && !sizes[i - this.numItemsAbove].size) {
           if (view) this.unuseView(view)
           continue
         }
@@ -469,7 +506,7 @@ export default {
 
         // Update position
         if (itemSize === null) {
-          view.position = sizes[i - 1].accumulator
+          view.position = computePosition(i - 1)
         } else {
           view.position = i * itemSize
         }
