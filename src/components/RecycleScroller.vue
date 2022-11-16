@@ -180,8 +180,7 @@ export default {
 
   watch: {
     items () {
-      console.log('new items')
-      this.updateVisibleItems(this.numItemsAbove === 0 && this.numItemsBelow === 0)
+      this.updateVisibleItems(true)
     },
 
     pageMode () {
@@ -218,7 +217,7 @@ export default {
     this.$nextTick(() => {
       // In SSR mode, render the real number of visible items
       this.$_prerender = false
-      this.updateVisibleItems(this.numItemsAbove === 0 && this.numItemsBelow === 0)
+      this.updateVisibleItems(true)
       this.ready = true
     })
   },
@@ -420,9 +419,10 @@ export default {
           if (view.nr.used) {
             // Update view item index
             if (checkItem) {
-              view.nr.index = items.findIndex(
+              const index = items.findIndex(
                 item => keyField ? item[keyField] === view.item[keyField] : item === view.item,
               )
+              view.nr.index = index === -1 ? index : index + this.numItemsAbove
             }
 
             // Check if index is still in visible range
