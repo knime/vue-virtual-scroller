@@ -118,6 +118,21 @@ export default {
       default: null,
     },
 
+    numItemsAbove: {
+      type: Number,
+      default: 0,
+    },
+
+    numItemsBelow: {
+      type: Number,
+      default: 0,
+    },
+
+    emptyItem: {
+      type: Object,
+      default: undefined,
+    },
+
     sizeField: {
       type: String,
       default: 'size',
@@ -193,16 +208,22 @@ export default {
   },
 
   computed: {
+
+    emptySize () {
+      return this.itemSize || this.emptyItem.size || this.minItemSize || 0
+    },
+
     sizes () {
+      const spaceAbove = this.emptySize * this.numItemsAbove
       if (this.itemSize === null) {
         const sizes = {
-          '-1': { accumulator: 0 },
+          '-1': { accumulator: spaceAbove },
         }
         const items = this.items
         const field = this.sizeField
         const minItemSize = this.minItemSize
         let computedMinSize = 10000
-        let accumulator = 0
+        let accumulator = spaceAbove
         let current
         for (let i = 0, l = items.length; i < l; i++) {
           current = items[i][field] || minItemSize
@@ -368,7 +389,7 @@ export default {
       const typeField = this.typeField
       const keyField = this.simpleArray ? null : this.keyField
       const items = this.items
-      const count = items.length
+      const count = items.length + this.numItemsAbove + this.numItemsBelow
       const sizes = this.sizes
       const views = this.$_views
       const unusedViews = this.$_unusedViews
@@ -376,6 +397,16 @@ export default {
       let startIndex, endIndex
       let totalSize
       let visibleStartIndex, visibleEndIndex
+
+      const computePosition = (i) => {
+        if (i < this.numItemsAbove - 1) {
+          return (i + 1) * this.emptySize
+        } else if (i < count - this.numItemsBelow) {
+          return sizes[i - this.numItemsAbove].accumulator
+        } else {
+          return sizes[items.length - 1].accumulator + ((i + 1) - (this.numItemsAbove + items.length)) * this.emptySize
+        }
+      }
 
       if (!count) {
         startIndex = endIndex = visibleStartIndex = visibleEndIndex = totalSize = 0
@@ -426,10 +457,10 @@ export default {
           // Searching for startIndex
           do {
             oldI = i
-            h = sizes[i].accumulator
+            h = computePosition(i)
             if (h < scroll.start) {
               a = i
-            } else if (i < count - 1 && sizes[i + 1].accumulator > scroll.start) {
+            } else if (i < count - 1 && computePosition(i + 1) > scroll.start) {
               b = i
             }
             i = ~~((a + b) / 2)
@@ -438,12 +469,12 @@ export default {
           startIndex = i
 
           // For container style
-          totalSize = sizes[count - 1].accumulator
+          totalSize = sizes[items.length - 1].accumulator + this.numItemsBelow * this.emptySize
 
           // Searching for endIndex
-          for (endIndex = i; endIndex < count && sizes[endIndex].accumulator < scroll.end; endIndex++);
+          for (endIndex = i; endIndex < count && computePosition(endIndex) < scroll.end; endIndex++);
           if (endIndex === -1) {
-            endIndex = items.length - 1
+            endIndex = count - 1
           } else {
             endIndex++
             // Bounds
@@ -451,10 +482,10 @@ export default {
           }
 
           // search visible startIndex
-          for (visibleStartIndex = startIndex; visibleStartIndex < count && (beforeSize + sizes[visibleStartIndex].accumulator) < scroll.start; visibleStartIndex++);
+          for (visibleStartIndex = startIndex; visibleStartIndex < count && (beforeSize + computePosition(visibleStartIndex)) < scroll.start; visibleStartIndex++);
 
           // search visible endIndex
-          for (visibleEndIndex = visibleStartIndex; visibleEndIndex < count && (beforeSize + sizes[visibleEndIndex].accumulator) < scroll.end; visibleEndIndex++);
+          for (visibleEndIndex = visibleStartIndex; visibleEndIndex < count && (beforeSize + computePosition(visibleEndIndex)) < scroll.end; visibleEndIndex++);
         } else {
           // Fixed size mode
           startIndex = ~~(scroll.start / itemSize * gridItems)
@@ -477,7 +508,6 @@ export default {
       if (endIndex - startIndex > config.itemsLimit) {
         this.itemsLimitError()
       }
-
       this.totalSize = totalSize
 
       let view
@@ -500,7 +530,10 @@ export default {
           if (view.nr.used) {
             // Update view item index
             if (checkItem) {
-              view.nr.index = items.indexOf(view.item)
+              const index = items.findIndex(
+                item => keyField ? item[keyField] === view.item[keyField] : item === view.item,
+              )
+              view.nr.index = index === -1 ? index : index + this.numItemsAbove
             }
 
             // Check if index is still in visible range
@@ -518,16 +551,22 @@ export default {
       const unusedIndex = continuous ? null : new Map()
 
       let item, type, unusedPool
-      let v
+      let v, key, checkSize
       for (let i = startIndex; i < endIndex; i++) {
-        item = items[i]
-        const key = keyField ? item[keyField] : item
+        if (i < this.numItemsAbove || i >= count - this.numItemsBelow) {
+          item = { id: `emptyItem-${i - this.numItemsAbove}`, ...this.emptyItem }
+          checkSize = false
+        } else {
+          item = items[i - this.numItemsAbove]
+          checkSize = true
+        }
+        key = keyField ? item[keyField] : item
         if (key == null) {
           throw new Error(`Key is ${key} on item (keyField is '${keyField}')`)
         }
         view = views.get(key)
 
-        if (!itemSize && !sizes[i].size) {
+        if (checkSize && !itemSize && !sizes[i - this.numItemsAbove].size) {
           if (view) this.unuseView(view)
           continue
         }
@@ -581,7 +620,7 @@ export default {
 
         // Update position
         if (itemSize === null) {
-          view.position = sizes[i - 1].accumulator
+          view.position = computePosition(i - 1)
           view.offset = 0
         } else {
           view.position = Math.floor(i / gridItems) * itemSize
