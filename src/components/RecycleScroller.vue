@@ -17,16 +17,15 @@
         name="before"
       />
     </div>
-
     <div
       ref="wrapper"
-      :style="{ [direction === 'vertical' ? 'minHeight' : 'minWidth']: totalSize + 'px' }"
+      :style="{ [direction === 'vertical' ? 'minHeight' : 'minWidth']: wrapperSize + 'px', transform: `translateY(${currentOffset}px)` }"
       class="vue-recycle-scroller__item-wrapper"
     >
       <div
         v-for="view of pool"
         :key="view.nr.id"
-        :style="ready ? { transform: `translate${direction === 'vertical' ? 'Y' : 'X'}(${view.position}px)` } : null"
+        :style="ready ? { transform: `translate${direction === 'vertical' ? 'Y' : 'X'}(${view.position - currentOffset}px)` } : null"
         class="vue-recycle-scroller__item-view"
         :class="{ hover: hoverKey === view.nr.key }"
         @mouseenter="hoverKey = view.nr.key"
@@ -80,6 +79,11 @@ export default {
     itemSize: {
       type: Number,
       default: null,
+    },
+
+    start: {
+      type: Number,
+      default: 0,
     },
 
     minItemSize: {
@@ -139,6 +143,11 @@ export default {
       totalSize: 0,
       ready: false,
       hoverKey: null,
+      currentOffset: 0,
+      wrapperMaxSize: 10000,
+      wrapperSize: null,
+      currentScrollStart: 0,
+      fromBar: false,
     }
   },
 
@@ -180,7 +189,9 @@ export default {
 
   watch: {
     items () {
-      this.updateVisibleItems(true)
+      // TODO: Uncomment this again
+      //  currently leading to an infinite loop if uncommented with sizes
+      // this.updateVisibleItems(true)
     },
 
     pageMode () {
@@ -190,9 +201,16 @@ export default {
 
     sizes: {
       handler () {
-        this.updateVisibleItems(false)
+        // TODO: Uncomment this again
+        // currently leading to an infinite loop if uncommented with items
+        // this.updateVisibleItems(false)
       },
       deep: true,
+    },
+
+    start () {
+      this.fromBar = true
+      this.updateVisibleItems(false, false, true)
     },
   },
 
@@ -217,9 +235,20 @@ export default {
     this.$nextTick(() => {
       // In SSR mode, render the real number of visible items
       this.$_prerender = false
+
       this.updateVisibleItems(true)
       this.ready = true
     })
+  },
+
+  updated () {
+    if (this.fromBar) {
+      // TODO: wrong scroll position used (0 = top of screen instead of top of body)
+      this.currentScrollTop = this.currentScrollStart - this.currentOffset
+      console.log(this.currentScrollStart, this.currentOffset)
+      // TODO: Not working yet
+      this.$emit('updatedScrollPosition', this.currentScrollTop)
+    }
   },
 
   beforeDestroy () {
@@ -273,6 +302,7 @@ export default {
         this.$_scrollDirty = true
         requestAnimationFrame(() => {
           this.$_scrollDirty = false
+          this.fromBar = false
           const { continuous } = this.updateVisibleItems(false, true)
 
           // It seems sometimes chrome doesn't fire scroll event :/
@@ -298,7 +328,7 @@ export default {
       }
     },
 
-    updateVisibleItems (checkItem, checkPositionDiff = false) {
+    updateVisibleItems (checkItem, checkPositionDiff = false, startChanged = false) {
       const itemSize = this.itemSize
       const minItemSize = this.$_computedMinItemSize
       const typeField = this.typeField
@@ -329,10 +359,11 @@ export default {
         endIndex = this.prerender
         totalSize = null
       } else {
-        const scroll = this.getScroll()
+        const scroll = this.getScroll(startChanged)
 
         // Skip update if use hasn't scrolled enough
-        if (checkPositionDiff) {
+        if (checkPositionDiff && false) {
+          // TODO: This seems to be no longer working correctly (the position diff is less than it should be: When scorlling 10 rows it is still smaller than minItemSize of 41px)
           let positionDiff = scroll.start - this.$_lastUpdateScrollPosition
           if (positionDiff < 0) positionDiff = -positionDiff
           if ((itemSize === null && positionDiff < minItemSize) || positionDiff < itemSize) {
@@ -398,7 +429,17 @@ export default {
         this.itemsLimitError()
       }
       this.totalSize = totalSize
-
+      if (startIndex > 10) {
+        if (this.currentOffset !== -100) {
+          this.currentOffset = -100
+          // this.$emit('offset', this.currentOffset)
+        }
+      } else {
+        if (this.currentOffset !== 0) {
+          this.currentOffset = 0
+          // this.$emit('offset', this.currentOffset)
+        }
+      }
       let view
 
       const continuous = startIndex <= this.$_endIndex && endIndex >= this.$_startIndex
@@ -510,12 +551,17 @@ export default {
         } else {
           view.position = i * itemSize
         }
+        if (i === startIndex) {
+          const halfMaxWrapperSize = Math.floor(this.wrapperMaxSize / 2)
+          this.currentOffset = halfMaxWrapperSize * Math.floor(view.position / halfMaxWrapperSize)
+          this.wrapperSize = Math.min(this.wrapperMaxSize, this.totalSize - this.currentOffset)
+        }
       }
 
       this.$_startIndex = startIndex
       this.$_endIndex = endIndex
-
-      if (this.emitUpdate) this.$emit('update', startIndex, endIndex)
+      console.log(this.getScroll())
+      if (this.emitUpdate) this.$emit('update', startIndex, endIndex, this.getScroll().top)
 
       // After the user has finished scrolling
       // Sort views so text selection is correct
@@ -536,15 +582,17 @@ export default {
       return target
     },
 
-    getScroll () {
+    getScroll (useProp = false) {
       const { $el: el, direction } = this
       const isVertical = direction === 'vertical'
       let scrollState
 
       if (this.pageMode) {
-        const bounds = el.getBoundingClientRect()
-        const boundsSize = isVertical ? bounds.height : bounds.width
-        let start = -(isVertical ? bounds.top : bounds.left)
+        const bounds = this.$refs.wrapper.getBoundingClientRect()
+        console.log(bounds)
+        const boundsSize = this.totalSize
+        let start = useProp ? this.start : this.currentOffset - (isVertical ? bounds.top : bounds.left)
+        console.log(useProp, start, bounds.top, this.currentOffset)
         let size = isVertical ? window.innerHeight : window.innerWidth
         if (start < 0) {
           size += start
@@ -556,6 +604,7 @@ export default {
         scrollState = {
           start,
           end: start + size,
+          top: bounds.top,
         }
       } else if (isVertical) {
         scrollState = {
@@ -568,7 +617,9 @@ export default {
           end: el.scrollLeft + el.clientWidth,
         }
       }
-
+      if (useProp) {
+        this.currentScrollStart = scrollState.start
+      }
       return scrollState
     },
 
