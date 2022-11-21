@@ -17,6 +17,7 @@
         name="before"
       />
     </div>
+    <!-- Instead of one huge wrapper, we have a fixed Size smaller wrapper which just changes its position every now and then (and the items change the same offset in the other direction)-->
     <div
       ref="wrapper"
       :style="{ [direction === 'vertical' ? 'minHeight' : 'minWidth']: wrapperSize + 'px', transform: `translateY(${currentOffset}px)` }"
@@ -81,7 +82,7 @@ export default {
       default: null,
     },
 
-    start: {
+    scrollTo: {
       type: Number,
       default: 0,
     },
@@ -143,10 +144,16 @@ export default {
       totalSize: 0,
       ready: false,
       hoverKey: null,
+      // The number of pixels, the current wrapper is shifted down and the rows are shifted up
       currentOffset: 0,
+      // a maximal number of pixels for the wrapper,
+      // this can be increased to the maximal allowed number of pixels (dynamically computed by creating a huuuge div and measuring its height afterwards)
       wrapperMaxSize: 10000,
+      // The size of the wrapper (either the maximum or (if at the end of the table) the needede height from the last point where the offset is changed). I.e. for small enough tables this is totalSize as before these changes
       wrapperSize: null,
+      // A variable used to communicate the current scrollPosition from the scroller to the outside worlds (i.e. later to the scrollbar)
       currentScrollStart: 0,
+      // A variable used to prevent that scroll updates which are not from outside (i.e. from the scrollbar) send a scroll update back out to the scrollbar.
       fromBar: false,
     }
   },
@@ -190,7 +197,7 @@ export default {
   watch: {
     items () {
       // TODO: Uncomment this again
-      //  currently leading to an infinite loop if uncommented with sizes
+      //  currently leading to an infinite loop if uncommented (although the items should not change at all)
       // this.updateVisibleItems(true)
     },
 
@@ -202,14 +209,15 @@ export default {
     sizes: {
       handler () {
         // TODO: Uncomment this again
-        // currently leading to an infinite loop if uncommented with items
+        // currently leading to an infinite loop if uncommented (although the sizes should not change at all)
         // this.updateVisibleItems(false)
       },
       deep: true,
     },
 
-    start () {
+    scrollTo () {
       this.fromBar = true
+      // the third parameter determines that the current scroll position will be taken from scrollTo.
       this.updateVisibleItems(false, false, true)
     },
   },
@@ -243,10 +251,9 @@ export default {
 
   updated () {
     if (this.fromBar) {
-      // TODO: wrong scroll position used (0 = top of screen instead of top of body)
+      // Inform the body that its content has changed from an external scroll update (from the scrollbar) and give it the necessary info to adjust its scrollTop
       this.currentScrollTop = this.currentScrollStart - this.currentOffset
       console.log(this.currentScrollStart, this.currentOffset)
-      // TODO: Not working yet
       this.$emit('updatedScrollPosition', this.currentScrollTop)
     }
   },
@@ -429,17 +436,7 @@ export default {
         this.itemsLimitError()
       }
       this.totalSize = totalSize
-      if (startIndex > 10) {
-        if (this.currentOffset !== -100) {
-          this.currentOffset = -100
-          // this.$emit('offset', this.currentOffset)
-        }
-      } else {
-        if (this.currentOffset !== 0) {
-          this.currentOffset = 0
-          // this.$emit('offset', this.currentOffset)
-        }
-      }
+
       let view
 
       const continuous = startIndex <= this.$_endIndex && endIndex >= this.$_startIndex
@@ -552,6 +549,7 @@ export default {
           view.position = i * itemSize
         }
         if (i === startIndex) {
+          // Possibly adjust the wrapper offset and size
           const halfMaxWrapperSize = Math.floor(this.wrapperMaxSize / 2)
           this.currentOffset = halfMaxWrapperSize * Math.floor(view.position / halfMaxWrapperSize)
           this.wrapperSize = Math.min(this.wrapperMaxSize, this.totalSize - this.currentOffset)
@@ -560,7 +558,6 @@ export default {
 
       this.$_startIndex = startIndex
       this.$_endIndex = endIndex
-      console.log(this.getScroll())
       if (this.emitUpdate) this.$emit('update', startIndex, endIndex, this.getScroll().top)
 
       // After the user has finished scrolling
@@ -588,11 +585,10 @@ export default {
       let scrollState
 
       if (this.pageMode) {
+        // We need the wrapper here instead of the element since this is the element that is actually scrolled (possibly not necessary when adjusting the element styling appropriately)
         const bounds = this.$refs.wrapper.getBoundingClientRect()
-        console.log(bounds)
         const boundsSize = this.totalSize
-        let start = useProp ? this.start : this.currentOffset - (isVertical ? bounds.top : bounds.left)
-        console.log(useProp, start, bounds.top, this.currentOffset)
+        let start = useProp ? this.scrollTo : this.currentOffset - (isVertical ? bounds.top : bounds.left)
         let size = isVertical ? window.innerHeight : window.innerWidth
         if (start < 0) {
           size += start
@@ -604,7 +600,7 @@ export default {
         scrollState = {
           start,
           end: start + size,
-          top: bounds.top,
+          top: bounds.top, // necessary to inform the outside scrollbar about the current position
         }
       } else if (isVertical) {
         scrollState = {
