@@ -198,6 +198,18 @@ var script = {
       type: [Number, String],
       default: null
     },
+    numItemsAbove: {
+      type: Number,
+      default: 0
+    },
+    numItemsBelow: {
+      type: Number,
+      default: 0
+    },
+    emptyItem: {
+      type: Object,
+      default: undefined
+    },
     sizeField: {
       type: String,
       default: 'size'
@@ -232,18 +244,23 @@ var script = {
     };
   },
   computed: {
+    emptySize: function emptySize() {
+      return this.itemSize || this.emptyItem.size || this.minItemSize || 0;
+    },
     sizes: function sizes() {
+      var spaceAbove = this.emptySize * this.numItemsAbove;
+
       if (this.itemSize === null) {
         var sizes = {
           '-1': {
-            accumulator: 0
+            accumulator: spaceAbove
           }
         };
         var items = this.items;
         var field = this.sizeField;
         var minItemSize = this.minItemSize;
         var computedMinSize = 10000;
-        var accumulator = 0;
+        var accumulator = spaceAbove;
         var current;
 
         for (var i = 0, l = items.length; i < l; i++) {
@@ -392,19 +409,31 @@ var script = {
       }
     },
     updateVisibleItems: function updateVisibleItems(checkItem) {
+      var _this4 = this;
+
       var checkPositionDiff = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
       var itemSize = this.itemSize;
       var minItemSize = this.$_computedMinItemSize;
       var typeField = this.typeField;
       var keyField = this.simpleArray ? null : this.keyField;
       var items = this.items;
-      var count = items.length;
+      var count = items.length + this.numItemsAbove + this.numItemsBelow;
       var sizes = this.sizes;
       var views = this.$_views;
       var unusedViews = this.$_unusedViews;
       var pool = this.pool;
       var startIndex, endIndex;
       var totalSize;
+
+      var computePosition = function computePosition(i) {
+        if (i < _this4.numItemsAbove - 1) {
+          return (i + 1) * _this4.emptySize;
+        } else if (i < count - _this4.numItemsBelow) {
+          return sizes[i - _this4.numItemsAbove].accumulator;
+        } else {
+          return sizes[items.length - 1].accumulator + (i + 1 - (_this4.numItemsAbove + items.length)) * _this4.emptySize;
+        }
+      };
 
       if (!count) {
         startIndex = endIndex = totalSize = 0;
@@ -440,11 +469,11 @@ var script = {
 
           do {
             oldI = i;
-            h = sizes[i].accumulator;
+            h = computePosition(i);
 
             if (h < scroll.start) {
               a = i;
-            } else if (i < count - 1 && sizes[i + 1].accumulator > scroll.start) {
+            } else if (i < count - 1 && computePosition(i + 1) > scroll.start) {
               b = i;
             }
 
@@ -454,13 +483,13 @@ var script = {
           i < 0 && (i = 0);
           startIndex = i; // For container style
 
-          totalSize = sizes[count - 1].accumulator; // Searching for endIndex
+          totalSize = sizes[items.length - 1].accumulator + this.numItemsBelow * this.emptySize; // Searching for endIndex
 
-          for (endIndex = i; endIndex < count && sizes[endIndex].accumulator < scroll.end; endIndex++) {
+          for (endIndex = i; endIndex < count && computePosition(endIndex) < scroll.end; endIndex++) {
           }
 
           if (endIndex === -1) {
-            endIndex = items.length - 1;
+            endIndex = count - 1;
           } else {
             endIndex++; // Bounds
 
@@ -504,9 +533,10 @@ var script = {
           if (view.nr.used) {
             // Update view item index
             if (checkItem) {
-              view.nr.index = items.findIndex(function (item) {
+              var index = items.findIndex(function (item) {
                 return keyField ? item[keyField] === view.item[keyField] : item === view.item;
               });
+              view.nr.index = index === -1 ? index : index + this.numItemsAbove;
             } // Check if index is still in visible range
 
 
@@ -519,11 +549,20 @@ var script = {
 
       var unusedIndex = continuous ? null : new Map();
       var item, type, unusedPool;
-      var v;
+      var v, key, checkSize;
 
       for (var _i3 = startIndex; _i3 < endIndex; _i3++) {
-        item = items[_i3];
-        var key = keyField ? item[keyField] : item;
+        if (_i3 < this.numItemsAbove || _i3 >= count - this.numItemsBelow) {
+          item = _objectSpread2({
+            id: "emptyItem-".concat(_i3 - this.numItemsAbove)
+          }, this.emptyItem);
+          checkSize = false;
+        } else {
+          item = items[_i3 - this.numItemsAbove];
+          checkSize = true;
+        }
+
+        key = keyField ? item[keyField] : item;
 
         if (key == null) {
           throw new Error("Key is ".concat(key, " on item (keyField is '").concat(keyField, "')"));
@@ -531,7 +570,7 @@ var script = {
 
         view = views.get(key);
 
-        if (!itemSize && !sizes[_i3].size) {
+        if (checkSize && !itemSize && !sizes[_i3 - this.numItemsAbove].size) {
           if (view) this.unuseView(view);
           continue;
         } // No view assigned to item
@@ -583,7 +622,7 @@ var script = {
 
 
         if (itemSize === null) {
-          view.position = sizes[_i3 - 1].accumulator;
+          view.position = computePosition(_i3 - 1);
         } else {
           view.position = _i3 * itemSize;
         }
@@ -690,10 +729,10 @@ var script = {
       }
     },
     itemsLimitError: function itemsLimitError() {
-      var _this4 = this;
+      var _this5 = this;
 
       setTimeout(function () {
-        console.log('It seems the scroller element isn\'t scrolling, so it tries to render all the items at once.', 'Scroller:', _this4.$el);
+        console.log('It seems the scroller element isn\'t scrolling, so it tries to render all the items at once.', 'Scroller:', _this5.$el);
         console.log('Make sure the scroller has a fixed height (or width) and \'overflow-y\' (or \'overflow-x\') set to \'auto\' so it can scroll correctly and only render the items visible in the scroll viewport.');
       });
       throw new Error('Rendered items limit reached');
