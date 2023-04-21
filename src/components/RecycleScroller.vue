@@ -196,6 +196,7 @@ export default {
     'update',
     'scroll-start',
     'scroll-end',
+    'total-size'
   ],
 
   data () {
@@ -210,7 +211,7 @@ export default {
   computed: {
 
     emptySize () {
-      return this.itemSize || this.emptyItem.size || this.minItemSize || 0
+      return this.itemSize || this.emptyItem?.size || this.minItemSize || 0
     },
 
     sizes () {
@@ -509,6 +510,7 @@ export default {
         this.itemsLimitError()
       }
       this.totalSize = totalSize
+      this.$emit("total-size", totalSize);
 
       let view
 
