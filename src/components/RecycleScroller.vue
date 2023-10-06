@@ -26,6 +26,7 @@
       class="vue-recycle-scroller__item-wrapper"
       :class="listClass"
     >
+      <slot name="in-wrapper" />
       <component
         :is="itemTag"
         v-for="view of pool"

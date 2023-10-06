@@ -801,6 +801,7 @@ function render$1(_ctx, _cache, $props, $setup, $data, $options) {
       class: normalizeClass(["vue-recycle-scroller__item-wrapper", $props.listClass])
     }, {
       default: withCtx(() => [
+        renderSlot(_ctx.$slots, "in-wrapper"),
         (openBlock(true), createElementBlock(Fragment, null, renderList($data.pool, (view) => {
           return (openBlock(), createBlock(resolveDynamicComponent($props.itemTag), mergeProps({
             key: view.nr.id,

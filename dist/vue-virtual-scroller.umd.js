@@ -11,65 +11,49 @@
   function getInternetExplorerVersion() {
     var ua = window.navigator.userAgent;
     var msie = ua.indexOf('MSIE ');
-
     if (msie > 0) {
       // IE 10 or older => return version number
       return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
     }
-
     var trident = ua.indexOf('Trident/');
-
     if (trident > 0) {
       // IE 11 => return version number
       var rv = ua.indexOf('rv:');
       return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
     }
-
     var edge = ua.indexOf('Edge/');
-
     if (edge > 0) {
       // Edge (IE 12+) => return version number
       return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
     } // other browser
 
-
     return -1;
   }
-
   let isIE;
-
-  function initCompat () {
+  function initCompat() {
     if (!initCompat.init) {
       initCompat.init = true;
       isIE = getInternetExplorerVersion() !== -1;
     }
   }
-
   var script$3 = {
     name: 'ResizeObserver',
-
     props: {
       emitOnMount: {
         type: Boolean,
-        default: false,
+        default: false
       },
-
       ignoreWidth: {
         type: Boolean,
-        default: false,
+        default: false
       },
-
       ignoreHeight: {
         type: Boolean,
-        default: false,
-      },
+        default: false
+      }
     },
-
-    emits: [
-      'notify',
-    ],
-
-    mounted () {
+    emits: ['notify'],
+    mounted() {
       initCompat();
       vue.nextTick(() => {
         this._w = this.$el.offsetWidth;
@@ -92,33 +76,28 @@
         this.$el.appendChild(object);
       }
     },
-
-    beforeUnmount () {
+    beforeUnmount() {
       this.removeResizeHandlers();
     },
-
     methods: {
-      compareAndNotify () {
-        if ((!this.ignoreWidth && this._w !== this.$el.offsetWidth) || (!this.ignoreHeight && this._h !== this.$el.offsetHeight)) {
+      compareAndNotify() {
+        if (!this.ignoreWidth && this._w !== this.$el.offsetWidth || !this.ignoreHeight && this._h !== this.$el.offsetHeight) {
           this._w = this.$el.offsetWidth;
           this._h = this.$el.offsetHeight;
           this.emitSize();
         }
       },
-
-      emitSize () {
+      emitSize() {
         this.$emit('notify', {
           width: this._w,
-          height: this._h,
+          height: this._h
         });
       },
-
-      addResizeHandlers () {
+      addResizeHandlers() {
         this._resizeObject.contentDocument.defaultView.addEventListener('resize', this.compareAndNotify);
         this.compareAndNotify();
       },
-
-      removeResizeHandlers () {
+      removeResizeHandlers() {
         if (this._resizeObject && this._resizeObject.onload) {
           if (!isIE && this._resizeObject.contentDocument) {
             this._resizeObject.contentDocument.defaultView.removeEventListener('resize', this.compareAndNotify);
@@ -127,23 +106,19 @@
           this._resizeObject.onload = null;
           this._resizeObject = null;
         }
-      },
-    },
+      }
+    }
   };
-
   const _withId = /*#__PURE__*/vue.withScopeId("data-v-b329ee4c");
-
   vue.pushScopeId("data-v-b329ee4c");
   const _hoisted_1$1 = {
     class: "resize-observer",
     tabindex: "-1"
   };
   vue.popScopeId();
-
   const render$2 = /*#__PURE__*/_withId((_ctx, _cache, $props, $setup, $data, $options) => {
-    return (vue.openBlock(), vue.createBlock("div", _hoisted_1$1))
+    return vue.openBlock(), vue.createBlock("div", _hoisted_1$1);
   });
-
   script$3.render = render$2;
   script$3.__scopeId = "data-v-b329ee4c";
   script$3.__file = "src/components/ResizeObserver.vue";
@@ -160,16 +135,13 @@
         return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
       };
     }
-
     return _typeof(obj);
   }
-
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
   }
-
   function _defineProperties(target, props) {
     for (var i = 0; i < props.length; i++) {
       var descriptor = props[i];
@@ -179,25 +151,20 @@
       Object.defineProperty(target, descriptor.key, descriptor);
     }
   }
-
   function _createClass(Constructor, protoProps, staticProps) {
     if (protoProps) _defineProperties(Constructor.prototype, protoProps);
     if (staticProps) _defineProperties(Constructor, staticProps);
     return Constructor;
   }
-
   function _toConsumableArray(arr) {
     return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread();
   }
-
   function _arrayWithoutHoles(arr) {
     if (Array.isArray(arr)) return _arrayLikeToArray(arr);
   }
-
   function _iterableToArray(iter) {
     if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter);
   }
-
   function _unsupportedIterableToArray(o, minLen) {
     if (!o) return;
     if (typeof o === "string") return _arrayLikeToArray(o, minLen);
@@ -206,22 +173,16 @@
     if (n === "Map" || n === "Set") return Array.from(o);
     if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
   }
-
   function _arrayLikeToArray(arr, len) {
     if (len == null || len > arr.length) len = arr.length;
-
     for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
-
     return arr2;
   }
-
   function _nonIterableSpread() {
     throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
   }
-
   function processOptions(value) {
     var options;
-
     if (typeof value === 'function') {
       // Simple options (callback-only)
       options = {
@@ -231,7 +192,6 @@
       // Options object
       options = value;
     }
-
     return options;
   }
   function throttle(callback, delay) {
@@ -239,24 +199,19 @@
     var timeout;
     var lastState;
     var currentArgs;
-
     var throttled = function throttled(state) {
       for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
         args[_key - 1] = arguments[_key];
       }
-
       currentArgs = args;
       if (timeout && state === lastState) return;
       var leading = options.leading;
-
       if (typeof leading === 'function') {
         leading = leading(state, lastState);
       }
-
       if ((!timeout || state !== lastState) && leading) {
         callback.apply(void 0, [state].concat(_toConsumableArray(currentArgs)));
       }
-
       lastState = state;
       clearTimeout(timeout);
       timeout = setTimeout(function () {
@@ -264,94 +219,74 @@
         timeout = 0;
       }, delay);
     };
-
     throttled._clear = function () {
       clearTimeout(timeout);
       timeout = null;
     };
-
     return throttled;
   }
   function deepEqual(val1, val2) {
     if (val1 === val2) return true;
-
     if (_typeof(val1) === 'object') {
       for (var key in val1) {
         if (!deepEqual(val1[key], val2[key])) {
           return false;
         }
       }
-
       return true;
     }
-
     return false;
   }
-
   var VisibilityState = /*#__PURE__*/function () {
     function VisibilityState(el, options, vnode) {
       _classCallCheck(this, VisibilityState);
-
       this.el = el;
       this.observer = null;
       this.frozen = false;
       this.createObserver(options, vnode);
     }
-
     _createClass(VisibilityState, [{
       key: "createObserver",
       value: function createObserver(options, vnode) {
         var _this = this;
-
         if (this.observer) {
           this.destroyObserver();
         }
-
         if (this.frozen) return;
         this.options = processOptions(options);
-
         this.callback = function (result, entry) {
           _this.options.callback(result, entry);
-
           if (result && _this.options.once) {
             _this.frozen = true;
-
             _this.destroyObserver();
           }
         }; // Throttle
 
-
         if (this.callback && this.options.throttle) {
           var _ref = this.options.throttleOptions || {},
-              _leading = _ref.leading;
-
+            _leading = _ref.leading;
           this.callback = throttle(this.callback, this.options.throttle, {
             leading: function leading(state) {
               return _leading === 'both' || _leading === 'visible' && state || _leading === 'hidden' && !state;
             }
           });
         }
-
         this.oldResult = undefined;
         this.observer = new IntersectionObserver(function (entries) {
           var entry = entries[0];
-
           if (entries.length > 1) {
             var intersectingEntry = entries.find(function (e) {
               return e.isIntersecting;
             });
-
             if (intersectingEntry) {
               entry = intersectingEntry;
             }
           }
-
           if (_this.callback) {
             // Use isIntersecting if possible because browsers can report isIntersecting as true, but intersectionRatio as 0, when something very slowly enters the viewport.
             var result = entry.isIntersecting && entry.intersectionRatio >= _this.threshold;
             if (result === _this.oldResult) return;
             _this.oldResult = result;
-
             _this.callback(result, entry);
           }
         }, this.options.intersection); // Wait for the element to be in document
@@ -370,10 +305,8 @@
           this.observer = null;
         } // Cancel throttled call
 
-
         if (this.callback && this.callback._clear) {
           this.callback._clear();
-
           this.callback = null;
         }
       }
@@ -383,14 +316,11 @@
         return this.options.intersection && typeof this.options.intersection.threshold === 'number' ? this.options.intersection.threshold : 0;
       }
     }]);
-
     return VisibilityState;
   }();
-
   function beforeMount(el, _ref2, vnode) {
     var value = _ref2.value;
     if (!value) return;
-
     if (typeof IntersectionObserver === 'undefined') {
       console.warn('[vue-observe-visibility] IntersectionObserver API is not available in your browser. Please install this polyfill: https://github.com/w3c/IntersectionObserver/tree/master/polyfill');
     } else {
@@ -398,18 +328,15 @@
       el._vue_visibilityState = state;
     }
   }
-
   function updated(el, _ref3, vnode) {
     var value = _ref3.value,
-        oldValue = _ref3.oldValue;
+      oldValue = _ref3.oldValue;
     if (deepEqual(value, oldValue)) return;
     var state = el._vue_visibilityState;
-
     if (!value) {
       unmounted(el);
       return;
     }
-
     if (state) {
       state.createObserver(value, vnode);
     } else {
@@ -418,16 +345,13 @@
       }, vnode);
     }
   }
-
   function unmounted(el) {
     var state = el._vue_visibilityState;
-
     if (state) {
       state.destroyObserver();
       delete el._vue_visibilityState;
     }
   }
-
   var ObserveVisibility = {
     beforeMount: beforeMount,
     updated: updated,
@@ -1228,6 +1152,7 @@
         class: vue.normalizeClass(["vue-recycle-scroller__item-wrapper", $props.listClass])
       }, {
         default: vue.withCtx(() => [
+          vue.renderSlot(_ctx.$slots, "in-wrapper"),
           (vue.openBlock(true), vue.createElementBlock(vue.Fragment, null, vue.renderList($data.pool, (view) => {
             return (vue.openBlock(), vue.createBlock(vue.resolveDynamicComponent($props.itemTag), vue.mergeProps({
               key: view.nr.id,
@@ -1274,7 +1199,26 @@
   script$2.render = render$1;
   script$2.__file = "src/components/RecycleScroller.vue";
 
-  function mitt(n){return {all:n=n||new Map,on:function(t,e){var i=n.get(t);i&&i.push(e)||n.set(t,[e]);},off:function(t,e){var i=n.get(t);i&&i.splice(i.indexOf(e)>>>0,1);},emit:function(t,e){(n.get(t)||[]).slice().map(function(n){n(e);}),(n.get("*")||[]).slice().map(function(n){n(t,e);});}}}
+  function mitt (n) {
+    return {
+      all: n = n || new Map(),
+      on: function (t, e) {
+        var i = n.get(t);
+        i && i.push(e) || n.set(t, [e]);
+      },
+      off: function (t, e) {
+        var i = n.get(t);
+        i && i.splice(i.indexOf(e) >>> 0, 1);
+      },
+      emit: function (t, e) {
+        (n.get(t) || []).slice().map(function (n) {
+          n(e);
+        }), (n.get("*") || []).slice().map(function (n) {
+          n(t, e);
+        });
+      }
+    };
+  }
 
   var script$1 = {
     name: 'DynamicScroller',
