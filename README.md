@@ -1,3 +1,7 @@
+# Vue Virtual Scroller
+
+This repository is maintained by the [KNIME UI Extensions Development Team](mailto:team-ui-extensions@knime.com).
+
 Copied from https://github.com/Akryum/vue-virtual-scroller and changed to better support large amount of rows.
 
 # vue-virtual-scroller
